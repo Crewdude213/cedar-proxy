@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Cedar — Foraging Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Josefin+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0C0F08;
+  --bg2:    #141A0E;
+  --card:   #1A2214;
+  --border: rgba(200,144,10,.18);
+  --gold:   #C8900A;
+  --gold2:  #E8C050;
+  --cream:  #F0E4C4;
+  --rust:   #8A2E0E;
+  --poppy:  #CC4818;
+  --text2:  rgba(240,228,196,.6);
+  --text3:  rgba(240,228,196,.35);
+}
+
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'Josefin Sans', sans-serif;
+  min-height: 100vh;
+  padding: 0 0 4rem;
+  overflow-x: hidden;
+}
+
+/* Grain */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+}
+
+@keyframes rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+
+/* ── Header ── */
+.header {
+  padding: 3rem 1.5rem 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  animation: rise .5s ease both;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 50%;
+  transform: translateX(-50%);
+  width: 48px; height: 1px;
+  background: var(--gold);
+}
+
+.header-badge {
+  margin: 0 auto 1.25rem;
+  display: block;
+}
+
+.app-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: .25em;
+  color: var(--cream);
+  margin-bottom: .25rem;
+}
+.app-sub {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: .6rem;
+  letter-spacing: .45em;
+  color: var(--gold);
+  text-transform: uppercase;
+  font-weight: 200;
+}
+
+/* ── Main content ── */
+.content {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0;
+}
+
+/* ── Download card ── */
+.download-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  animation: rise .5s .1s ease both;
+}
+
+.download-card-header {
+  padding: 1rem 1.125rem .75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.download-card-header svg {
+  flex-shrink: 0;
+  color: var(--gold);
+}
+.download-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: .85rem;
+  letter-spacing: .1em;
+  color: var(--cream);
+  font-weight: 600;
+}
+.download-card-sub {
+  font-size: .55rem;
+  letter-spacing: .2em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.download-card-body {
+  padding: 1rem 1.125rem;
+}
+
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  animation: rise .5s .15s ease both;
+}
+.stat {
+  background: var(--bg2);
+  padding: .75rem .5rem;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'Cinzel', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--gold2);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.stat-label {
+  font-size: .48rem;
+  letter-spacing: .2em;
+  color: var(--text3);
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+/* ── Download button ── */
+.btn-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: var(--gold);
+  color: var(--bg);
+  font-family: 'Cinzel', serif;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-decoration: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background .2s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+  animation: rise .5s .2s ease both;
+}
+.btn-download:active {
+  background: #A87008;
+  transform: scale(.98);
+}
+.btn-download svg { flex-shrink: 0; }
+
+/* ── Instructions ── */
+.instructions {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  animation: rise .5s .25s ease both;
+}
+
+.instructions-header {
+  padding: .75rem 1.125rem;
+  border-bottom: 1px solid var(--border);
+  font-size: .55rem;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 300;
+}
+
+.step {
+  display: flex;
+  gap: 12px;
+  padding: .875rem 1.125rem;
+  border-bottom: 1px solid rgba(200,144,10,.08);
+  align-items: flex-start;
+}
+.step:last-child { border-bottom: none; }
+
+.step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(200,144,10,.12);
+  border: 1px solid rgba(200,144,10,.25);
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: .65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-text {
+  flex: 1;
+  font-size: .8rem;
+  color: var(--text2);
+  line-height: 1.65;
+}
+.step-text strong {
+  color: var(--cream);
+  font-weight: 400;
+}
+.step-text code {
+  font-family: monospace;
+  font-size: .75rem;
+  background: rgba(200,144,10,.1);
+  color: var(--gold2);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+/* ── What's included ── */
+.categories {
+  animation: rise .5s .3s ease both;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 1rem;
+}
+.cat-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: .625rem .75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cat-emoji { font-size: 1.1rem; flex-shrink: 0; }
+.cat-name {
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text2);
+  font-weight: 300;
+}
+.cat-count {
+  margin-left: auto;
+  font-family: 'Cinzel', serif;
+  font-size: .65rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* ── Rule ── */
+.rule {
+  display: flex; align-items: center; gap: 8px;
+  margin: 1.5rem 0;
+}
+.rule-line { flex:1; height:1px; background:var(--border); }
+.rule-diamond {
+  width:5px; height:5px;
+  background:var(--poppy);
+  transform:rotate(45deg);
+  flex-shrink:0;
+}
+
+/* ── Section label ── */
+.section-lbl {
+  font-size: .55rem;
+  letter-spacing: .4em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 200;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-lbl::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── What each event contains ── */
+.event-preview {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--gold);
+  border-radius: 0 3px 3px 0;
+  padding: .875rem 1rem;
+  font-size: .78rem;
+  color: var(--text2);
+  line-height: 1.75;
+  animation: rise .5s .35s ease both;
+}
+.event-preview .ev-title {
+  font-family: 'Cinzel', serif;
+  font-size: .9rem;
+  color: var(--cream);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.event-preview .ev-date {
+  font-size: .65rem;
+  color: var(--gold);
+  letter-spacing: .1em;
+  margin-bottom: .5rem;
+}
+.ev-row { display: flex; gap: 6px; margin-bottom: 2px; }
+.ev-key { color: var(--text3); width: 80px; flex-shrink: 0; }
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 2.5rem 1.5rem 0;
+  animation: rise .5s .4s ease both;
+}
+.footer p {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: .85rem;
+  color: var(--text3);
+  line-height: 1.8;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <!-- Cedar logo badge — matches app header exactly -->
+  <svg class="header-badge" width="96" height="82" viewBox="0 0 110 95" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="104" height="89" rx="22" ry="22" fill="#EEE8D0"/>
+    <clipPath id="cal-badge-c"><rect x="3" y="3" width="104" height="89" rx="22" ry="22"/></clipPath>
+    <g clip-path="url(#cal-badge-c)">
+      <rect x="3" y="3"  width="104" height="24" fill="#243018"/>
+      <rect x="3" y="27" width="104" height="20" fill="#3A5828"/>
+      <rect x="3" y="47" width="104" height="22" fill="#5A7A40"/>
+      <rect x="3" y="69" width="104" height="23" fill="#7A9450"/>
+      <rect x="7" y="7" width="96" height="81" rx="18" ry="18" fill="none" stroke="#EEE8D0" stroke-width="1.5" opacity=".5"/>
+      <text x="55" y="23" font-family="Georgia,serif" font-weight="700" font-size="15" fill="#EEE8D0" text-anchor="middle" letter-spacing=".5">Cedar</text>
+      <g fill="#EEE8D0">
+        <polygon points="24,67 31,54 38,67"/>
+        <polygon points="21,60 31,44 41,60"/>
+        <rect x="29.5" y="67" width="3" height="9"/>
+        <polygon points="44,67 55,50 66,67"/>
+        <polygon points="41,60 55,40 69,60"/>
+        <polygon points="44,53 55,35 66,53"/>
+        <rect x="53.5" y="67" width="3" height="9"/>
+        <polygon points="72,67 79,54 86,67"/>
+        <polygon points="69,60 79,44 89,60"/>
+        <rect x="77.5" y="67" width="3" height="9"/>
+        <rect x="22" y="63" width="16" height="2.5" rx="1.25"/>
+        <rect x="72" y="63" width="16" height="2.5" rx="1.25"/>
+      </g>
+      <text x="55" y="87" font-family="Georgia,sans-serif" font-weight="600" font-size="8.5" fill="#EEE8D0" text-anchor="middle" letter-spacing=".3">Foraging &amp; Harvest</text>
+    </g>
+    <rect x="3" y="3" width="104" height="89" rx="22" ry="22" fill="none" stroke="#EEE8D0" stroke-width="5"/>
+  </svg>
+
+  <div class="app-name" style="font-family:Georgia,'Times New Roman',serif">Cedar</div>
+  <div class="app-sub">Northern California Foraging · Seasonal Calendar</div>
+</div>
+
+<div class="content">
+
+  <!-- ── Stats ── -->
+  <div class="stats-row" style="margin-top:2rem">
+    <div class="stat">
+      <div class="stat-num">124</div>
+      <div class="stat-label">Wild<br>Species</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">370</div>
+      <div class="stat-label">Calendar<br>Events</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">∞</div>
+      <div class="stat-label">Repeats<br>Annually</div>
+    </div>
+  </div>
+
+  <!-- ── Download card ── -->
+  <div class="download-card">
+    <div class="download-card-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <path d="M12 14v4M10 16l2 2 2-2"/>
+      </svg>
+      <div>
+        <div class="download-card-title">cedar-foraging-calendar.ics</div>
+        <div class="download-card-sub">iCalendar · 254 KB · Annual recurring</div>
+      </div>
+    </div>
+    <div class="download-card-body">
+      <p style="font-size:.78rem;color:var(--text2);line-height:1.7;margin-bottom:1rem">
+        Every species in the Cedar database — their available season and peak harvest window —
+        imported directly into your iOS Calendar. Events repeat every year automatically.
+      </p>
+      <p style="font-size:.72rem;color:var(--text3);line-height:1.65;margin-bottom:1.25rem">
+        Each event includes the scientific name, habitat, difficulty, regions, harvest tip,
+        and lookalike warning. Your field guide, in your calendar.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Download button ── -->
+  <a class="btn-download" href="cedar-foraging-calendar.ics" download="cedar-foraging-calendar.ics">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    Download Calendar File
+  </a>
+
+  <div class="rule" style="margin-top:1.75rem"></div>
+
+  <!-- ── Instructions ── -->
+  <div class="section-lbl" style="margin-bottom:1rem">How to add to iPhone</div>
+
+  <div class="instructions">
+    <div class="instructions-header">Step by step · iOS Calendar</div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        Tap <strong>Download Calendar File</strong> above. Safari will download the <code>.ics</code> file.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        A prompt appears: <strong>"cedar-foraging-calendar.ics — Do you want to add this calendar?"</strong> — tap <strong>Allow</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        iOS Calendar opens and shows a preview. Tap <strong>Add All</strong> to import all 370 events. They're added to a new calendar called <strong>Cedar · NorCal Foraging Seasons</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">
+        Open <strong>Calendar</strong> app → tap the calendar list → find <strong>Cedar · NorCal Foraging Seasons</strong>. The color is set to Cedar gold automatically.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-text">
+        Done. Every species season appears on your calendar and <strong>repeats automatically every year</strong>. Tap any event to see the full field notes.
+      </div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── Event preview ── -->
+  <div class="section-lbl">What each event looks like</div>
+
+  <div class="event-preview">
+    <div class="ev-title">🍄 Golden Chanterelle Season</div>
+    <div class="ev-date">Nov 1 → Mar 1 · Repeats every year</div>
+    <div class="ev-row"><span class="ev-key">Scientific</span><span>Cantharellus californicus</span></div>
+    <div class="ev-row"><span class="ev-key">Difficulty</span><span>Moderate</span></div>
+    <div class="ev-row"><span class="ev-key">Habitat</span><span>Oak woodland, mixed forest</span></div>
+    <div class="ev-row"><span class="ev-key">Regions</span><span>Marin, East Bay, Peninsula, Santa Cruz</span></div>
+    <div class="ev-row"><span class="ev-key">Peak</span><span>Oct – Mar</span></div>
+    <div style="margin-top:.625rem;font-size:.75rem;color:var(--text3);line-height:1.65">
+      ⚠ Lookalike: Jack-o'-lantern mushroom (Omphalotus olivascens)<br>
+      💡 Tip: Peak after first heavy winter rains. Cut at base — never pull.
+    </div>
+  </div>
+
+  <div style="margin-top:1rem">
+    <div class="event-preview" style="border-left-color:var(--poppy)">
+      <div class="ev-title">◆ Golden Chanterelle — Peak Season</div>
+      <div class="ev-date" style="color:var(--poppy)">Oct 1 → Mar 31 · Peak harvest window · Repeats yearly</div>
+      <div style="font-size:.75rem;color:var(--text3);margin-top:.5rem;line-height:1.65">
+        Best harvest window of the year. Full season events show available months;
+        peak events (marked ◆) show when conditions are optimal.
+      </div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── Categories ── -->
+  <div class="section-lbl">What's included</div>
+
+  <div class="cat-grid categories">
+    <div class="cat-item">
+      <div class="cat-emoji">🍄</div>
+      <div class="cat-name">Mushrooms</div>
+      <div class="cat-count">28</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🌿</div>
+      <div class="cat-name">Wild Greens</div>
+      <div class="cat-count">34</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🍇</div>
+      <div class="cat-name">Berries</div>
+      <div class="cat-count">18</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🍎</div>
+      <div class="cat-name">Fruits</div>
+      <div class="cat-count">16</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🌰</div>
+      <div class="cat-name">Nuts & Seeds</div>
+      <div class="cat-count">8</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🌊</div>
+      <div class="cat-name">Coastal</div>
+      <div class="cat-count">12</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-emoji">🌾</div>
+      <div class="cat-name">Invasives</div>
+      <div class="cat-count">8</div>
+    </div>
+    <div class="cat-item" style="border-color:rgba(200,144,10,.35)">
+      <div class="cat-emoji">📍</div>
+      <div class="cat-name">All Species</div>
+      <div class="cat-count" style="color:var(--gold2)">124</div>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="rule"></div>
+    <p>
+      Seasonal data sourced from the Cedar foraging database<br>
+      for Northern California Bay Area and surrounding regions.<br>
+      Events repeat annually — no re-import needed.
+    </p>
+    <div style="margin-top:1.25rem;font-family:'Josefin Sans',sans-serif;font-size:.5rem;letter-spacing:.3em;text-transform:uppercase;color:rgba(200,144,10,.2)">
+      Cedar · Northern California Foraging
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
