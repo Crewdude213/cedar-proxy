@@ -188,3 +188,12 @@ app.get('/ff', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Cedar running on port ${PORT}`));
+
+app.get('/calendar', (req, res) => {
+  res.sendFile(path.join(__dirname, 'cedar-calendar-download.html'));
+});
+app.get('/cedar-foraging-calendar.ics', (req, res) => {
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="cedar-foraging-calendar.ics"');
+  res.sendFile(path.join(__dirname, 'cedar-foraging-calendar.ics'));
+});
