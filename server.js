@@ -1,4 +1,4 @@
-// Cedar Foraging App — Server + Gemini Vision Proxy
+// // Cedar Foraging App — Server + Gemini Vision Proxy
 // Serves the Cedar app at / and proxies Gemini Vision at /identify
 
 const express = require('express');
@@ -156,6 +156,34 @@ Respond with ONLY a raw JSON object — no markdown, no backticks, no text befor
   } catch (err) {
     console.error('Proxy error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+
+// ── Falling Fruit proxy endpoint ──
+// Forwards requests to fallingfruit.org/api/0.3/locations server-side
+// so the Cedar app avoids CORS restrictions calling FF directly.
+app.get('/ff', async (req, res) => {
+  const { bounds, limit = 200 } = req.query;
+  if (!bounds) return res.status(400).json({ error: 'Missing bounds parameter' });
+
+  const FF_URL = `https://fallingfruit.org/api/0.3/locations?muni=false&locale=en&limit=${limit}&bounds=${encodeURIComponent(bounds)}`;
+
+  try {
+    const response = await fetch(FF_URL, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Cedar-Foraging-App/1.0' }
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({ error: `Falling Fruit HTTP ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.json(data);
+
+  } catch (err) {
+    console.error('FF proxy error:', err);
+    res.status(500).json({ error: err.message || 'Falling Fruit proxy error' });
   }
 });
 
