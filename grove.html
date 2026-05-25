@@ -1435,9 +1435,8 @@ async function loadFFData(){
   showFFLoading(true);
   try{
     // Try FF API directly first — works when app is served over HTTPS
-    var url='https://fallingfruit.org/api/0.3/locations?muni=false&locale=en&limit=200'
-      +'&bounds='+b.getSouth()+','+b.getWest()+','+b.getNorth()+','+b.getEast();
-    var resp=await fetch(url,{mode:'cors'});
+    var url='/ff?bounds='+b.getSouth()+','+b.getWest()+','+b.getNorth()+','+b.getEast()+'&limit=200';
+    var resp=await fetch(url);
     if(resp.ok){
       var data=await resp.json();
       var locs=(data.locations||data||[]).map(function(l){
@@ -1725,8 +1724,12 @@ function renderListView(){
   const el=document.getElementById('mapListInner');if(!el)return;
   const pins=loadPins();
   const today=new Date().getMonth();
+  // Update count label
+  var countEl = document.getElementById('listCount');
+  if(countEl) countEl.textContent = pins.length + ' spot' + (pins.length===1?'':'s');
+
   if(!pins.length){
-    el.innerHTML='<div style="text-align:center;padding:2.5rem 1rem;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📍</div><div style="font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px">No spots yet</div><p style="font-size:12px;line-height:1.6">Switch to Map view and tap + to drop your first pin.</p></div>';
+    el.innerHTML='<div style="text-align:center;padding:2.5rem 1rem;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📍</div><div style="font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px">No spots yet</div><p style="font-size:12px;line-height:1.6">Switch to Map view and tap + to drop your first pin, or tap <b style="color:var(--blue)">⬇ Import FF</b> to load Falling Fruit community spots near you.</p></div>';
     return;
   }
   const sorted=[...pins].sort((a,b)=>{
@@ -1821,8 +1824,9 @@ function initMapPanel(){
 
   <!-- List panel -->
   <div id="mapListPanel" style="display:none;flex-direction:column;flex:1;overflow:hidden">
-    <div style="padding:.625rem 1.125rem;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:13px;color:var(--text2)" id="listCount">My spots</span>
+    <div style="padding:.625rem 1.125rem;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+      <span style="font-size:13px;color:var(--text2);flex:1" id="listCount">My spots</span>
+      <button onclick="importFFSpots()" id="ffImportBtn" style="padding:5px 11px;font-size:11px;font-weight:600;background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.25);border-radius:20px;cursor:pointer;font-family:inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent">⬇ Import FF</button>
       <button class="cf-add-btn" onclick="startPinDrop();mapView='map';renderMapView()">+ Add spot</button>
     </div>
     <div class="scroll-area" id="mapListInner"></div>
@@ -2700,6 +2704,129 @@ function renderIDError(msg){
 window.handleIDUpload = window.handleIDUpload;
 async function runAIIdentification(b64, mime){ return runIDAnalysis(b64, mime); }
 async function runDualIdentification(b64, mime){ return runIDAnalysis(b64, mime); }
+
+
+// ═══════════════════════════════════════════════════════════════
+// FALLING FRUIT BULK IMPORT
+// Fetches all community foraging spots for Northern California
+// via the Cedar proxy (/ff route) and saves them to My Spots.
+// Deduplicates by proximity so re-importing is safe.
+// ═══════════════════════════════════════════════════════════════
+
+window.importFFSpots = async function(){
+  var btn = document.getElementById('ffImportBtn');
+  if(btn){ btn.textContent = '⏳ Importing…'; btn.disabled = true; }
+
+  // NorCal Bay Area covered in a 3×3 grid of bounding boxes
+  // Each tile is ~1° × 1° (~100km) — FF API returns up to 200 per call
+  var tiles = [
+    // [south, west, north, east]
+    [37.0, -122.8, 37.7, -122.0],   // San Francisco / Marin / Peninsula
+    [37.7, -122.8, 38.4, -122.0],   // North Bay / Sonoma coast
+    [37.0, -122.0, 37.7, -121.3],   // East Bay / Santa Cruz mountains
+    [37.7, -122.0, 38.4, -121.3],   // Napa / Contra Costa / Solano
+    [38.4, -123.2, 39.0, -122.4],   // Mendocino / Lake County
+    [37.0, -121.3, 37.7, -120.6],   // South Bay / Diablo foothills
+  ];
+
+  var allLocs = [];
+  var errors  = 0;
+
+  for(var i = 0; i < tiles.length; i++){
+    var t = tiles[i];
+    try {
+      var url = '/ff?bounds=' + t[0] + ',' + t[1] + ',' + t[2] + ',' + t[3] + '&limit=200';
+      var resp = await fetch(url);
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      if(data.error) throw new Error(data.error);
+      var locs = Array.isArray(data) ? data : (data.locations || []);
+      allLocs = allLocs.concat(locs);
+    } catch(e) {
+      errors++;
+      console.warn('FF tile ' + i + ' failed:', e.message);
+    }
+    // Small delay between tiles to be respectful to FF servers
+    await new Promise(function(r){ setTimeout(r, 300); });
+  }
+
+  if(allLocs.length === 0){
+    if(btn){ btn.textContent = '⬇ Import FF'; btn.disabled = false; }
+    mapToast('Could not reach Falling Fruit — check connection');
+    return;
+  }
+
+  // Deduplicate against existing pins by lat/lng proximity (~50m)
+  var existing = loadPins();
+  var newPins  = [];
+  var skipped  = 0;
+
+  allLocs.forEach(function(loc){
+    var lat = parseFloat(loc.lat);
+    var lng = parseFloat(loc.lng);
+    if(!lat || !lng) return;
+
+    // Check proximity to existing pins
+    var isDupe = existing.concat(newPins).some(function(p){
+      var dlat = (p.lat - lat) * 111000;
+      var dlng = (p.lng - lng) * 111000 * Math.cos(lat * Math.PI/180);
+      return Math.sqrt(dlat*dlat + dlng*dlng) < 50;
+    });
+
+    if(isDupe){ skipped++; return; }
+
+    // Map FF type to Cedar category
+    var typeName = (loc.type_names && loc.type_names[0]) || (loc.name) || 'Edible plant';
+    var cat = mapFFCategory(typeName);
+    var name = loc.name || typeName;
+
+    newPins.push({
+      id:      'ff_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      name:    name,
+      sci:     '',
+      cat:     cat,
+      lat:     lat,
+      lng:     lng,
+      notes:   [
+        loc.description ? loc.description.slice(0,200) : '',
+        loc.access ? 'Access: ' + loc.access : '',
+        'Types: ' + (loc.type_names || [typeName]).join(', ')
+      ].filter(Boolean).join(' · '),
+      public:  true,
+      quality: 0,
+      photos:  [],
+      date:    new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'}),
+      harvests:[],
+      fromFF:  true,
+      ffTypes: loc.type_names || [typeName]
+    });
+  });
+
+  // Save all new pins
+  var combined = existing.concat(newPins);
+  savePins(combined);
+  renderMyMarkers();
+  renderListView();
+
+  if(btn){ btn.textContent = '⬇ Import FF'; btn.disabled = false; }
+
+  var msg = newPins.length + ' spots imported';
+  if(skipped > 0) msg += ' · ' + skipped + ' duplicates skipped';
+  if(errors > 0)  msg += ' · ' + errors + ' tiles failed';
+  mapToast(msg + ' ✓');
+};
+
+// Map Falling Fruit type names to Cedar categories
+function mapFFCategory(typeName){
+  var t = (typeName || '').toLowerCase();
+  if(/mushroom|fungi|chanterelle|boletus|oyster|morel/.test(t))   return 'mushrooms';
+  if(/berry|berries|blackberry|blueberry|huckle|elder|goose/.test(t)) return 'berries';
+  if(/apple|pear|plum|cherry|fig|persimmon|quince|apricot|peach/.test(t)) return 'fruits';
+  if(/walnut|acorn|hazelnut|chestnut|almond|pine.nut/.test(t))    return 'nuts';
+  if(/miner|mallow|sorrel|dock|nettle|mustard|clover|dandelion|lettuce|green/.test(t)) return 'greens';
+  if(/seaweed|kelp|dulse|nori|sea|limpet|mussel|oyster|clam|crab/.test(t)) return 'coastal';
+  return 'other';
+}
 
 buildPills();
 renderMonth();
